@@ -15,6 +15,7 @@ type Error struct {
 	Message      string
 	StackErr     error
 	DebugMessage string
+	ErrFields    []string
 }
 
 func NewError(err error, errStatus ErrorStatus) *Error {
@@ -39,6 +40,11 @@ func (e *Error) WithMessage(message string) *Error {
 	return e
 }
 
+func (e *Error) WithFields(fields ...string) *Error {
+	e.ErrFields = fields
+	return e
+}
+
 type RestErrorResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
@@ -57,31 +63,27 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 		message interface{}
 	)
 
-	if he, ok := err.(*echo.HTTPError); ok {
-		code = he.Code
-		message = he.Message
-		if he.Internal != nil {
-			if herr, ok := he.Internal.(*Error); ok {
-				message = map[string]interface{}{
-					"status":        herr.Status.String(),
-					"message":       herr.Message,
-					"debug_message": herr.DebugMessage,
-				}
+	switch e := err.(type) {
+	case *echo.HTTPError:
+		fmt.Println("echo.HTTPError")
+		code = e.Code
+		message = e.Message
+		if e.Internal != nil {
+			if internalErr, ok := e.Internal.(*Error); ok {
+				message = formatCustomError(internalErr)
 			} else {
 				message = map[string]interface{}{
 					"status":  http.StatusText(code),
-					"message": he.Message,
-					"error":   he.Internal.Error(),
+					"message": e.Message,
+					"error":   e.Internal.Error(),
 				}
 			}
 		}
-	} else if herr, ok := err.(*Error); ok {
-		code = herr.Status.StatusCode()
-		message = map[string]interface{}{
-			"status":  herr.Status.String(),
-			"message": herr.Message,
-		}
-	} else {
+	case *Error:
+		fmt.Println("*Error")
+		code = e.Status.StatusCode()
+		message = formatCustomError(e)
+	default:
 		message = map[string]interface{}{
 			"status":  http.StatusText(code),
 			"message": err.Error(),
@@ -94,6 +96,20 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 		} else {
 			c.JSON(code, message)
 		}
+	}
+}
+
+func formatCustomError(err *Error) map[string]interface{} {
+	if err.ErrFields != nil {
+		return map[string]interface{}{
+			"status":  err.Status.String(),
+			"message": err.Message,
+			"fields":  err.ErrFields,
+		}
+	}
+	return map[string]interface{}{
+		"status":  err.Status.String(),
+		"message": err.Message,
 	}
 }
 
