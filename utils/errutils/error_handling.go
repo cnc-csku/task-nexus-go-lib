@@ -65,7 +65,6 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 
 	switch e := err.(type) {
 	case *echo.HTTPError:
-		fmt.Println("echo.HTTPError")
 		code = e.Code
 		message = e.Message
 		if e.Internal != nil {
@@ -80,7 +79,6 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 			}
 		}
 	case *Error:
-		fmt.Println("*Error")
 		code = e.Status.StatusCode()
 		message = formatCustomError(e)
 	default:
