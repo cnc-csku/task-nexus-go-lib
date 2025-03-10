@@ -59,11 +59,16 @@ func EchoLoggingMiddleware(logger *logrus.Logger, formatter logrus.Formatter) ec
 			latency := stop.Sub(start)
 			statusCode := res.Status
 
+			realIP := c.RealIP()
+			if forwarded := req.Header.Get(echo.HeaderXForwardedFor); forwarded != "" {
+				realIP = forwarded
+			}
+
 			fields := logrus.Fields{
 				"type":       "httpserver",
 				"method":     req.Method,
 				"uri":        req.RequestURI,
-				"remote_ip":  c.RealIP(),
+				"remote_ip":  realIP,
 				"status":     statusCode,
 				"latency":    latency.String(),
 				"user_agent": req.UserAgent(),
