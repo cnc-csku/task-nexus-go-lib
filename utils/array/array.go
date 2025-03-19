@@ -1,7 +1,12 @@
 package array
 
-func ContainAny(arr []string, targets []string) bool { // To check if the array contains any of the targets
-	targetSet := make(map[string]struct{}, len(targets))
+import (
+	"errors"
+	"slices"
+)
+
+func ContainAny[T comparable](arr []T, targets []T) bool { // To check if the array contains any of the targets
+	targetSet := make(map[T]struct{}, len(targets))
 	for _, t := range targets {
 		targetSet[t] = struct{}{}
 	}
@@ -12,4 +17,14 @@ func ContainAny(arr []string, targets []string) bool { // To check if the array 
 		}
 	}
 	return false
+}
+
+func RemoveOne[T comparable](arr []T, target T) ([]T, error) {
+	for i, a := range arr {
+		if a == target {
+			return slices.Delete(arr, i, i+1), nil
+		}
+	}
+
+	return nil, errors.New("target not found")
 }
